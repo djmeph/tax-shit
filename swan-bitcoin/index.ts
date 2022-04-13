@@ -11,10 +11,7 @@ const options = parse<CommandLineArgs>({
   const results = await readCsv(options.file);
   const output = formatOutput(results);
   writeCsv(output);
-
-  console.log(output);
-  console.log(Object.values(ColumnHeaders).join(','))
-
+  console.log(`CSV Output: ${options.out}`);
 })().catch(err => console.error(err));
 
 function readCsv(filename: string): Promise<InputCsv[]> {
@@ -39,21 +36,13 @@ function formatOutput(input: InputCsv[]): OutputCsv[] {
           buyCurrency: 'BTC',
           sellAmount: Number(row.USD),
           sellCurrency: 'USD',
-          feeAmount: Number(row['Fee USD']),
+          feeAmount: Math.floor(Number(row.USD) * 0.0099 * 100) / 100,
           feeCurrency: 'USD',
           exchange: 'Swan Bitcoin',
           date: new Date(row.Date),
         });
         break;
       case InputType.FEE:
-        results.push({
-          type: TransactionType.EXPENSE,
-          sellAmount: Number(row['Fee USD']),
-          sellCurrency: 'USD',
-          exchange: 'Swan Bitcoin',
-          date: new Date(row.Date),
-        });
-        break;
       case InputType.DEPOSIT:
       default:
     }
@@ -64,8 +53,8 @@ function formatOutput(input: InputCsv[]): OutputCsv[] {
 function writeCsv(output: OutputCsv[]): void {
   const stream = createWriteStream(options.out);
   stream.write(Object.values(ColumnHeaders).join(','));
-  stream.write('\n');
   for (const row of output) {
+    stream.write('\n');
     stream.write([
       row.type,
       row.buyAmount || '',
@@ -79,7 +68,6 @@ function writeCsv(output: OutputCsv[]): void {
       row.comment || '',
       row.date.toISOString(),
     ].join(','));
-    stream.write('\n');
   }
   stream.end();
 }
@@ -109,7 +97,7 @@ enum InputType {
 
 enum TransactionType {
   TRADE = 'Trade',
-  EXPENSE = 'Expense',
+  SPEND = 'spend',
 }
 
 enum ColumnHeaders {
